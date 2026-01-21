@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PDF Tools Generator</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+}
+.page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.box {
+  background: #fff;
+  padding: 25px;
+  border-radius: 14px;
+  width: 100%;
+  max-width: 480px;
+}
+input, button {
+  width: 100%;
+  padding: 12px;
+  margin-top: 10px;
+}
+button {
+  background: #667eea;
+  color: #fff;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+}
+.preview {
+  margin-top: 20px;
+  text-align: center;
+}
+.preview img {
+  width: 120px;
+  height: 180px;
+  object-fit: cover;
+}
+</style>
+</head>
+
+<body>
+<div class="page">
+  <div class="box">
+    <h2>📘 PDF Generator</h2>
+
+    <input id="pdfName" placeholder="PDF File Name">
+    <input id="title" placeholder="Book Title" oninput="updatePreview()">
+    <input id="author" placeholder="Author" oninput="updatePreview()">
+    <input id="link" placeholder="Download Link">
+    <input id="asin" placeholder="Amazon ASIN" oninput="updatePreview()">
+
+    <div class="preview">
+      <img id="cover">
+      <h4 id="pTitle">Book Title</h4>
+      <p id="pAuthor">Author</p>
+    </div>
+
+    <button onclick="generatePDF()">Generate PDF</button>
+  </div>
+</div>
+
+<script>
+function updatePreview() {
+  const title = titleInput.value || 'Book Title';
+  const author = authorInput.value || 'Author';
+  const asin = asinInput.value;
+
+  pTitle.innerText = title;
+  pAuthor.innerText = author;
+
+  if (asin.length > 5) {
+    cover.src = `https://images-na.ssl-images-amazon.com/images/P/${asin}.01.LZZZZZZZ.jpg`;
+  }
+}
+
+async function generatePDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF('p','pt','a4');
+
+  const title = titleInput.value;
+  const author = authorInput.value;
+  const link = linkInput.value;
+  const asin = asinInput.value;
+  const pdfName = pdfNameInput.value || 'ebook';
+
+  /* PAGE 1 – COVER */
+  const img = new Image();
+  img.crossOrigin = "anonymous";
+  img.src = `https://images-na.ssl-images-amazon.com/images/P/${asin}.01.LZZZZZZZ.jpg`;
+
+  await new Promise(r => img.onload = r);
+
+  doc.addImage(img, 'JPEG', 0, 0, 595, 842);
+
+  /* PAGE 2 – CONTENT */
+  doc.addPage();
+  doc.setFontSize(14);
+  doc.text(
+    `Download or Read Online ${title}\n\n` +
+    `Author: ${author}\n\n` +
+    `Click the button below to download the ebook.`,
+    40, 60, { maxWidth: 515 }
+  );
+
+  /* BUTTON */
+  doc.setFillColor(102,126,234);
+  doc.rect(180, 300, 235, 45, 'F');
+  doc.setTextColor(255);
+  doc.text('DOWNLOAD PDF', 297, 330, { align: 'center' });
+  doc.link(180, 300, 235, 45, { url: link });
+
+  /* EXTRA PAGES */
+  doc.addPage();
+  doc.addPage();
+
+  doc.save(`${pdfName}.pdf`);
+}
+
+const pdfNameInput = document.getElementById('pdfName');
+const titleInput = document.getElementById('title');
+const authorInput = document.getElementById('author');
+const linkInput = document.getElementById('link');
+const asinInput = document.getElementById('asin');
+</script>
+</body>
+</html>
