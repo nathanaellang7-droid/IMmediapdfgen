@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>PDF Tools Generator</title>
+<title>Bulk PDF Generator</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -11,128 +11,162 @@
 body {
   margin: 0;
   font-family: Arial, sans-serif;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: #eef1ff;
 }
-.page {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.container {
+  max-width: 1200px;
+  margin: auto;
+  padding: 20px;
 }
-.box {
-  background: #fff;
-  padding: 25px;
-  border-radius: 14px;
+h1 {
+  text-align: center;
+}
+table {
   width: 100%;
-  max-width: 480px;
+  border-collapse: collapse;
+  margin-top: 20px;
 }
-input, button {
+th, td {
+  border: 1px solid #ddd;
+  padding: 8px;
+}
+input {
   width: 100%;
-  padding: 12px;
-  margin-top: 10px;
-}
-button {
-  background: #667eea;
-  color: #fff;
-  border: none;
-  font-size: 16px;
-  cursor: pointer;
+  padding: 6px;
 }
 .preview {
-  margin-top: 20px;
   text-align: center;
 }
 .preview img {
-  width: 120px;
-  height: 180px;
+  width: 80px;
+  height: 120px;
   object-fit: cover;
+}
+button {
+  padding: 12px 20px;
+  margin-top: 20px;
+  font-size: 16px;
+  background: #667eea;
+  color: #fff;
+  border: none;
+  cursor: pointer;
 }
 </style>
 </head>
 
 <body>
-<div class="page">
-  <div class="box">
-    <h2>📘 PDF Generator</h2>
+<div class="container">
+  <h1>📚 Bulk PDF Generator</h1>
 
-    <input id="pdfName" placeholder="PDF File Name">
-    <input id="title" placeholder="Book Title" oninput="updatePreview()">
-    <input id="author" placeholder="Author" oninput="updatePreview()">
-    <input id="link" placeholder="Download Link">
-    <input id="asin" placeholder="Amazon ASIN" oninput="updatePreview()">
+  <table id="table">
+    <thead>
+      <tr>
+        <th>PDF Name</th>
+        <th>Book Title</th>
+        <th>Author</th>
+        <th>Download Link</th>
+        <th>ASIN</th>
+        <th>Preview</th>
+      </tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
 
-    <div class="preview">
-      <img id="cover">
-      <h4 id="pTitle">Book Title</h4>
-      <p id="pAuthor">Author</p>
-    </div>
-
-    <button onclick="generatePDF()">Generate PDF</button>
-  </div>
+  <button onclick="addRow()">➕ Add Row</button>
+  <button onclick="generateAll()">🚀 Generate ALL PDFs</button>
 </div>
 
 <script>
-function updatePreview() {
-  const title = titleInput.value || 'Book Title';
-  const author = authorInput.value || 'Author';
-  const asin = asinInput.value;
+const rows = document.getElementById('rows');
+addRow(); addRow();
 
-  pTitle.innerText = title;
-  pAuthor.innerText = author;
+function addRow() {
+  const r = document.createElement('tr');
+  r.innerHTML = `
+    <td><input class="pdf"></td>
+    <td><input class="title" oninput="updatePreview(this)"></td>
+    <td><input class="author" oninput="updatePreview(this)"></td>
+    <td><input class="link"></td>
+    <td><input class="asin" oninput="updatePreview(this)"></td>
+    <td class="preview">
+      <img>
+      <div class="pTitle"></div>
+      <div class="pAuthor"></div>
+    </td>
+  `;
+  rows.appendChild(r);
+}
 
+function updatePreview(el) {
+  const row = el.closest('tr');
+  const title = row.querySelector('.title').value || 'Book Title';
+  const author = row.querySelector('.author').value || 'Author';
+  const asin = row.querySelector('.asin').value;
+  row.querySelector('.pTitle').innerText = title;
+  row.querySelector('.pAuthor').innerText = author;
   if (asin.length > 5) {
-    cover.src = `https://images-na.ssl-images-amazon.com/images/P/${asin}.01.LZZZZZZZ.jpg`;
+    row.querySelector('img').src =
+      `https://images-na.ssl-images-amazon.com/images/P/${asin}.01.LZZZZZZZ.jpg`;
   }
 }
 
-async function generatePDF() {
+async function generatePDF(data) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF('p','pt','a4');
+  const W = 595;
 
-  const title = titleInput.value;
-  const author = authorInput.value;
-  const link = linkInput.value;
-  const asin = asinInput.value;
-  const pdfName = pdfNameInput.value || 'ebook';
-
-  /* PAGE 1 – COVER */
+  /* COVER */
   const img = new Image();
   img.crossOrigin = "anonymous";
-  img.src = `https://images-na.ssl-images-amazon.com/images/P/${asin}.01.LZZZZZZZ.jpg`;
-
+  img.src = `https://images-na.ssl-images-amazon.com/images/P/${data.asin}.01.LZZZZZZZ.jpg`;
   await new Promise(r => img.onload = r);
+  doc.addImage(img, 'JPEG', (W-220)/2, 40, 220, 330);
 
-  doc.addImage(img, 'JPEG', 0, 0, 595, 842);
+  /* TITLE */
+  doc.setFont('times','bold');
+  doc.setFontSize(18);
+  doc.text(data.pdf, W/2, 410, {align:'center'});
 
-  /* PAGE 2 – CONTENT */
-  doc.addPage();
-  doc.setFontSize(14);
-  doc.text(
-    `Download or Read Online ${title}\n\n` +
-    `Author: ${author}\n\n` +
-    `Click the button below to download the ebook.`,
-    40, 60, { maxWidth: 515 }
-  );
+  /* TEXT */
+  doc.setFont('times','normal');
+  doc.setFontSize(12);
+  const text =
+`Descarga o lee online el ebook gratuito ${data.title} (PDF ePub Mobi) -
+${data.author}
+
+Ebook PDF ${data.title} | DESCARGA ONLINE DE E-BOOKS
+Si quieres descargar un ebook gratis, estás en el lugar indicado.
+El ebook/PDF ${data.title} está disponible gratis aquí.
+Haz clic en el enlace de descarga a continuación para descargar el ebook
+${data.title} en PDF en español/castellano del autor ${data.author}.`;
+
+  doc.text(text, W/2, 450, {align:'center', maxWidth:420});
 
   /* BUTTON */
-  doc.setFillColor(102,126,234);
-  doc.rect(180, 300, 235, 45, 'F');
+  doc.setFillColor(46,204,113);
+  doc.roundedRect((W-260)/2, 690, 260, 48, 8, 8, 'F');
   doc.setTextColor(255);
-  doc.text('DOWNLOAD PDF', 297, 330, { align: 'center' });
-  doc.link(180, 300, 235, 45, { url: link });
+  doc.setFontSize(16);
+  doc.text('Click here to DOWNLOAD', W/2, 722, {align:'center'});
+  doc.link((W-260)/2, 690, 260, 48, {url:data.link});
+  doc.setTextColor(0);
 
-  /* EXTRA PAGES */
-  doc.addPage();
-  doc.addPage();
-
-  doc.save(`${pdfName}.pdf`);
+  doc.save(`${data.pdf}.pdf`);
 }
 
-const pdfNameInput = document.getElementById('pdfName');
-const titleInput = document.getElementById('title');
-const authorInput = document.getElementById('author');
-const linkInput = document.getElementById('link');
-const asinInput = document.getElementById('asin');
+async function generateAll() {
+  const trs = rows.querySelectorAll('tr');
+  for (const tr of trs) {
+    const data = {
+      pdf: tr.querySelector('.pdf').value || 'ebook',
+      title: tr.querySelector('.title').value,
+      author: tr.querySelector('.author').value,
+      link: tr.querySelector('.link').value,
+      asin: tr.querySelector('.asin').value
+    };
+    if (data.title && data.asin) await generatePDF(data);
+  }
+}
 </script>
 </body>
 </html>
